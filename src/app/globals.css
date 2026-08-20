@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-cream-50 text-ink-900;
+  }
+
+  ::selection {
+    @apply bg-sunset-200;
+  }
+}
+
+@layer components {
+  .focus-ring {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-harbor-400 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-50;
+  }
+
+  .field-label {
+    @apply mb-2 block text-sm font-semibold text-ink-800;
+  }
+
+  .field-help {
+    @apply mt-1.5 text-xs text-ink-700/50;
+  }
+
+  .field-error {
+    @apply mt-1.5 text-sm font-medium text-red-600;
+  }
+
+  .text-input {
+    @apply focus-ring min-h-[48px] w-full rounded-xl border border-ink-900/10 bg-white px-4 py-3 text-base text-ink-900 placeholder:text-ink-700/40 transition-colors hover:border-ink-900/20 focus-visible:border-harbor-400;
+  }
+
+  .picker-trigger {
+    @apply focus-ring flex min-h-[48px] w-full items-center justify-between gap-2 rounded-xl border border-ink-900/10 bg-white px-4 py-3 text-left text-base text-ink-900 transition-colors hover:border-ink-900/20;
+  }
+
+  .picker-trigger[data-empty="true"] {
+    @apply text-ink-700/40;
+  }
+
+  .picker-option {
+    @apply flex w-full items-center justify-between gap-3 px-5 py-3.5 text-left text-[15px] text-ink-800 transition-colors active:bg-cream-100;
+  }
+
+  .picker-option[data-selected="true"] {
+    @apply font-semibold text-sunset-600;
+  }
+
+  .form-card {
+    @apply rounded-2xl border border-ink-900/10 bg-white shadow-card sm:rounded-3xl;
+  }
+}
