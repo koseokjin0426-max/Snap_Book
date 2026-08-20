@@ -1,11 +1,12 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import DateCalendar from "./DateCalendar";
 import EmailField from "./EmailField";
 import LocationPicker from "./LocationPicker";
 import SelectField from "./SelectField";
 import {
+  PARTY_SIZE_OPTIONS,
   ReservationInput,
   STYLE_OPTIONS,
   TIME_SLOTS,
@@ -25,6 +26,7 @@ const EMPTY_INPUT: ReservationInput = {
   email: "",
   style: "",
   styleEtc: "",
+  partySize: "",
   shootDate: "",
   shootTime: "",
   location: "",
@@ -33,7 +35,7 @@ const EMPTY_INPUT: ReservationInput = {
 };
 
 const STYLE_SELECT_OPTIONS = STYLE_OPTIONS.map((s) => ({ value: s, label: s }));
-const TIME_SELECT_OPTIONS = TIME_SLOTS.map((t) => ({ value: t, label: formatTimeSlotLabel(t) }));
+const PARTY_SIZE_SELECT_OPTIONS = PARTY_SIZE_OPTIONS.map((p) => ({ value: p, label: p }));
 
 export default function ReservationForm() {
   const [input, setInput] = useState<ReservationInput>(EMPTY_INPUT);
@@ -41,11 +43,51 @@ export default function ReservationForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState<ReservationInput | null>(null);
+  const [bookedTimes, setBookedTimes] = useState<string[]>([]);
+  const [loadingTimes, setLoadingTimes] = useState(false);
   const formTopRef = useRef<HTMLDivElement>(null);
 
   function update<K extends keyof ReservationInput>(key: K, value: ReservationInput[K]) {
     setInput((prev) => ({ ...prev, [key]: value }));
   }
+
+  useEffect(() => {
+    if (!input.shootDate) {
+      setBookedTimes([]);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingTimes(true);
+
+    fetch(`/api/reservations/availability?date=${input.shootDate}`, { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("불러오기 실패"))))
+      .then((body) => {
+        if (cancelled) return;
+        const booked: string[] = body.bookedTimes ?? [];
+        setBookedTimes(booked);
+        if (input.shootTime && booked.includes(input.shootTime)) {
+          update("shootTime", "");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setBookedTimes([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingTimes(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input.shootDate]);
+
+  const timeSelectOptions = TIME_SLOTS.map((t) => ({
+    value: t,
+    label: bookedTimes.includes(t) ? `${formatTimeSlotLabel(t)} (마감)` : formatTimeSlotLabel(t),
+    disabled: bookedTimes.includes(t),
+  }));
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -194,21 +236,21 @@ export default function ReservationForm() {
               </div>
 
               <div>
-                <label htmlFor="field-shootTime" className="field-label">
-                  희망 촬영 시간 <span className="text-sunset-600">*</span>
+                <label htmlFor="field-partySize" className="field-label">
+                  총 인원 <span className="text-sunset-600">*</span>
                 </label>
                 <SelectField
-                  id="field-shootTime"
-                  value={input.shootTime}
-                  onChange={(v) => update("shootTime", v)}
-                  options={TIME_SELECT_OPTIONS}
-                  placeholder="시간 선택"
-                  ariaInvalid={!!errors.shootTime}
-                  ariaDescribedby={errors.shootTime ? "error-shootTime" : undefined}
+                  id="field-partySize"
+                  value={input.partySize}
+                  onChange={(v) => update("partySize", v)}
+                  options={PARTY_SIZE_SELECT_OPTIONS}
+                  placeholder="인원 선택"
+                  ariaInvalid={!!errors.partySize}
+                  ariaDescribedby={errors.partySize ? "error-partySize" : undefined}
                 />
-                {errors.shootTime && (
-                  <p id="error-shootTime" className="field-error" role="alert">
-                    {errors.shootTime}
+                {errors.partySize && (
+                  <p id="error-partySize" className="field-error" role="alert">
+                    {errors.partySize}
                   </p>
                 )}
               </div>
@@ -250,6 +292,33 @@ export default function ReservationForm() {
             {errors.shootDate && (
               <p className="field-error" role="alert">
                 {errors.shootDate}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="field-shootTime" className="field-label">
+              희망 촬영 시간 <span className="text-sunset-600">*</span>
+            </label>
+            <SelectField
+              id="field-shootTime"
+              value={input.shootTime}
+              onChange={(v) => update("shootTime", v)}
+              options={timeSelectOptions}
+              placeholder={
+                !input.shootDate
+                  ? "날짜를 먼저 선택해 주세요"
+                  : loadingTimes
+                    ? "예약 가능 시간 확인 중..."
+                    : "시간 선택"
+              }
+              disabled={!input.shootDate || loadingTimes}
+              ariaInvalid={!!errors.shootTime}
+              ariaDescribedby={errors.shootTime ? "error-shootTime" : undefined}
+            />
+            {errors.shootTime && (
+              <p id="error-shootTime" className="field-error" role="alert">
+                {errors.shootTime}
               </p>
             )}
           </div>
@@ -322,6 +391,7 @@ function ConfirmationView({
     ["전화번호", data.phone],
     ...(data.email ? ([["이메일", data.email]] as Array<[string, string]>) : []),
     ["촬영 스타일", styleLabel],
+    ["총 인원", data.partySize],
     ["희망 날짜", formatDateLabel(data.shootDate)],
     ["희망 시간", formatTimeSlotLabel(data.shootTime)],
     ["촬영 장소", data.location],

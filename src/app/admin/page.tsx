@@ -21,6 +21,7 @@ export default function AdminDashboardPage() {
   const [reservations, setReservations] = useState<ReservationRecord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function load() {
     setError(null);
@@ -48,6 +49,25 @@ export default function AdminDashboardPage() {
     await fetch("/api/admin/logout", { method: "POST" });
     router.replace("/admin/login");
     router.refresh();
+  }
+
+  async function handleDelete(id: string, name: string) {
+    if (!window.confirm(`${name}님의 예약을 삭제할까요? 되돌릴 수 없어요.`)) return;
+    setDeletingId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/reservations/${id}`, { method: "DELETE" });
+      if (res.status === 401) {
+        router.replace("/admin/login");
+        return;
+      }
+      if (!res.ok) throw new Error("예약을 삭제하지 못했어요.");
+      setReservations((prev) => prev?.filter((r) => r.id !== id) ?? prev);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "예약을 삭제하지 못했어요.");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -101,9 +121,11 @@ export default function AdminDashboardPage() {
                   <th className="px-4 py-3 font-semibold">성함</th>
                   <th className="px-4 py-3 font-semibold">전화번호</th>
                   <th className="px-4 py-3 font-semibold">촬영 스타일</th>
+                  <th className="px-4 py-3 font-semibold">인원</th>
                   <th className="px-4 py-3 font-semibold">희망 날짜/시간</th>
                   <th className="px-4 py-3 font-semibold">장소</th>
                   <th className="px-4 py-3 font-semibold">요청사항</th>
+                  <th className="px-4 py-3 font-semibold">관리</th>
                 </tr>
               </thead>
               <tbody>
@@ -115,11 +137,22 @@ export default function AdminDashboardPage() {
                     <td className="whitespace-nowrap px-4 py-3 text-ink-800">
                       {r.style === "기타" && r.style_etc ? `기타(${r.style_etc})` : r.style}
                     </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-ink-800">{r.party_size || "-"}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-ink-800">
                       {formatDateLabel(r.shoot_date)} · {formatTimeSlotLabel(r.shoot_time)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-ink-800">{r.location}</td>
                     <td className="max-w-xs px-4 py-3 text-ink-700/80">{r.request_note || "-"}</td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(r.id, r.name)}
+                        disabled={deletingId === r.id}
+                        className="focus-ring rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                      >
+                        {deletingId === r.id ? "삭제 중..." : "삭제"}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

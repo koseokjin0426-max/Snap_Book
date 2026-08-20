@@ -1,4 +1,10 @@
-import { LOCATION_CUSTOM, ReservationInput, STYLE_OPTIONS, TIME_SLOTS } from "./constants";
+import {
+  LOCATION_CUSTOM,
+  PARTY_SIZE_OPTIONS,
+  ReservationInput,
+  STYLE_OPTIONS,
+  TIME_SLOTS,
+} from "./constants";
 
 export type ReservationErrors = Partial<Record<keyof ReservationInput, string>>;
 
@@ -27,6 +33,10 @@ export function validateReservation(input: ReservationInput): ReservationErrors 
     errors.style = "촬영 스타일을 선택해 주세요.";
   } else if (input.style === "기타" && !input.styleEtc.trim()) {
     errors.styleEtc = "촬영 스타일을 직접 입력해 주세요.";
+  }
+
+  if (!input.partySize || !PARTY_SIZE_OPTIONS.includes(input.partySize as (typeof PARTY_SIZE_OPTIONS)[number])) {
+    errors.partySize = "총 인원을 선택해 주세요.";
   }
 
   if (!input.shootDate) {

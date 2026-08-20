@@ -7,6 +7,7 @@ export interface ReservationInsert {
   email: string | null;
   style: string;
   style_etc: string | null;
+  party_size: string;
   shoot_date: string;
   shoot_time: string;
   location: string;
@@ -56,4 +57,39 @@ export async function listReservations(): Promise<{
     .select("*")
     .order("created_at", { ascending: false });
   return { data: data as ReservationRecord[] | null, error };
+}
+
+export async function listBookedTimesForDate(
+  date: string
+): Promise<{ data: string[] | null; error: { message: string } | null }> {
+  const supabase = getClient();
+  const { data, error } = await (supabase.from("reservations") as any)
+    .select("shoot_time")
+    .eq("shoot_date", date);
+  if (error) return { data: null, error };
+  return { data: (data as Array<{ shoot_time: string }>).map((r) => r.shoot_time), error: null };
+}
+
+export async function isSlotTaken(
+  date: string,
+  time: string
+): Promise<{ taken: boolean; error: { message: string } | null }> {
+  const supabase = getClient();
+  const { data, error } = await (supabase.from("reservations") as any)
+    .select("id")
+    .eq("shoot_date", date)
+    .eq("shoot_time", time)
+    .limit(1);
+  if (error) return { taken: false, error };
+  return { taken: (data?.length ?? 0) > 0, error: null };
+}
+
+export async function deleteReservation(
+  id: string
+): Promise<{ error: { message: string } | null }> {
+  const supabase = getClient();
+  const { error } = await (supabase.from("reservations") as any)
+    .delete()
+    .eq("id", id);
+  return { error };
 }

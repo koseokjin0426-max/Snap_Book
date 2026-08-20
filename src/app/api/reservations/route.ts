@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { insertReservation } from "@/lib/supabaseAdmin";
+import { insertReservation, isSlotTaken } from "@/lib/supabaseAdmin";
 import { ReservationInput } from "@/lib/constants";
 import { hasErrors, validateReservation } from "@/lib/validateReservation";
 
@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
     email: String(body?.email ?? "").trim(),
     style: String(body?.style ?? "").trim(),
     styleEtc: String(body?.styleEtc ?? "").trim(),
+    partySize: String(body?.partySize ?? "").trim(),
     shootDate: String(body?.shootDate ?? "").trim(),
     shootTime: String(body?.shootTime ?? "").trim(),
     location: String(body?.location ?? "").trim(),
@@ -33,12 +34,22 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const { taken, error: availabilityError } = await isSlotTaken(input.shootDate, input.shootTime);
+    if (availabilityError) throw availabilityError;
+    if (taken) {
+      return NextResponse.json(
+        { message: "선택하신 시간은 이미 예약이 마감됐어요. 다른 시간을 선택해 주세요." },
+        { status: 409 }
+      );
+    }
+
     const { error } = await insertReservation({
       name: input.name,
       phone: input.phone,
       email: input.email || null,
       style: input.style,
       style_etc: input.style === "기타" ? input.styleEtc : null,
+      party_size: input.partySize,
       shoot_date: input.shootDate,
       shoot_time: input.shootTime,
       location: input.location,

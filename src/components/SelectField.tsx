@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 export interface SelectOption {
   value: string;
   label: string;
+  disabled?: boolean;
 }
 
 interface SelectFieldProps {
@@ -18,6 +19,7 @@ interface SelectFieldProps {
   ariaInvalid?: boolean;
   ariaDescribedby?: string;
   className?: string;
+  disabled?: boolean;
 }
 
 function ChevronIcon() {
@@ -58,6 +60,7 @@ export default function SelectField({
   ariaInvalid,
   ariaDescribedby,
   className = "",
+  disabled = false,
 }: SelectFieldProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -98,12 +101,13 @@ export default function SelectField({
         id={id}
         type="button"
         onClick={() => setOpen(true)}
+        disabled={disabled}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-describedby={ariaDescribedby}
         data-empty={!selected}
         data-invalid={ariaInvalid}
-        className="picker-trigger"
+        className="picker-trigger disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className="truncate">{selected ? selected.label : placeholder}</span>
         <ChevronIcon />
@@ -149,9 +153,10 @@ export default function SelectField({
                     <li key={option.value}>
                       <button
                         type="button"
-                        onClick={() => handleSelect(option.value)}
+                        onClick={() => !option.disabled && handleSelect(option.value)}
+                        disabled={option.disabled}
                         data-selected={isSelected}
-                        className="picker-option"
+                        className="picker-option disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {option.label}
                         {isSelected && <CheckIcon />}

@@ -8,6 +8,21 @@ export const STYLE_OPTIONS = [
 
 export type StyleOption = (typeof STYLE_OPTIONS)[number];
 
+export const PARTY_SIZE_OPTIONS = [
+  "1명",
+  "2명",
+  "3명",
+  "4명",
+  "5명",
+  "6명",
+  "7명",
+  "8명",
+  "9명",
+  "10명 이상",
+] as const;
+
+export type PartySizeOption = (typeof PARTY_SIZE_OPTIONS)[number];
+
 export const TIME_SLOTS = [
   "09:00",
   "10:00",
@@ -59,6 +74,7 @@ export interface ReservationInput {
   email: string;
   style: string;
   styleEtc: string;
+  partySize: string;
   shootDate: string;
   shootTime: string;
   location: string;
@@ -74,6 +90,7 @@ export interface ReservationRecord {
   email: string | null;
   style: string;
   style_etc: string | null;
+  party_size: string | null;
   shoot_date: string;
   shoot_time: string;
   location: string;
